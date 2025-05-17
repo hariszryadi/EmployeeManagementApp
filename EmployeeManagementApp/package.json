@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "name": "EmployeeManagementApp",
+  "private": true,
+  "main": "Program.cs",
+  "description": "Employee Management Application with Excel and PDF export",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation": "3.1.32",
+    "EPPlus": "5.8.14",
+    "Rotativa.AspNetCore": "1.2.0"
+  }
+}
