@@ -3,69 +3,82 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using System.Data;
+using System.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace EmployeeManagementApp.Repositories
 {
     public class EmployeeRepository : IEmployeeRepository
     {
-        private static List<Employee> _employees = new List<Employee>
+        private readonly string _connectionString;
+
+        public EmployeeRepository(IConfiguration configuration)
         {
-            new Employee
-            {
-                Id = 1,
-                Name = "Budi Santoso",
-                Position = "Software Developer",
-                Department = "IT",
-                JoinDate = new DateTime(2020, 5, 15),
-                Salary = 8000000
-            },
-            new Employee
-            {
-                Id = 2,
-                Name = "Siti Rahayu",
-                Position = "UI/UX Designer",
-                Department = "Design",
-                JoinDate = new DateTime(2021, 3, 10),
-                Salary = 7500000
-            },
-            new Employee
-            {
-                Id = 3,
-                Name = "Ahmad Hidayat",
-                Position = "Project Manager",
-                Department = "Management",
-                JoinDate = new DateTime(2019, 11, 22),
-                Salary = 12000000
-            },
-            new Employee
-            {
-                Id = 4,
-                Name = "Dewi Lestari",
-                Position = "Business Analyst",
-                Department = "Business",
-                JoinDate = new DateTime(2022, 1, 5),
-                Salary = 9000000
-            },
-            new Employee
-            {
-                Id = 5,
-                Name = "Eko Prasetyo",
-                Position = "Database Administrator",
-                Department = "IT",
-                JoinDate = new DateTime(2020, 8, 17),
-                Salary = 8500000
-            }
-        };
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
+        }
 
         public async Task<IEnumerable<Employee>> GetAllEmployeesAsync()
         {
-            return await Task.FromResult(_employees);
+            var employees = new List<Employee>();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlCommand cmd = new SqlCommand("GetEmployee", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                conn.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var employee = new Employee
+                        {
+                            Id = Convert.ToInt32(reader["Id"]),
+                            Name = reader["Name"].ToString(),
+                            Position = reader["Position"].ToString(),
+                            Department = reader["Department"].ToString(),
+                            JoinDate = Convert.ToDateTime(reader["JoinDate"]),
+                            Salary = Convert.ToDecimal(reader["Salary"])
+                        };
+
+                        employees.Add(employee);
+                    }
+                }
+            }
+
+            return await Task.FromResult(employees);
         }
 
         public async Task<Employee> GetEmployeeByIdAsync(int id)
         {
-            var employee = _employees.FirstOrDefault(e => e.Id == id);
-            return await Task.FromResult(employee);
+            Employee empl = null;
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+
+                var query = "SELECT Id, Name, Position, Department, JoinDate, Salary FROM Employee WHERE Id = @Id";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@Id", id);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        empl = new Employee
+                        {
+                            Id = (int)reader["Id"],
+                            Name = reader["Name"].ToString(),
+                            Position = reader["Position"].ToString(),
+                            Department = reader["Department"].ToString(),
+                            JoinDate = Convert.ToDateTime(reader["JoinDate"]),
+                            Salary = Convert.ToDecimal(reader["Salary"])
+                        };
+                    }
+                }
+            }
+            return await Task.FromResult(empl);
         }
     }
 }
